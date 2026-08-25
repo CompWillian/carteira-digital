@@ -1,8 +1,9 @@
-// --- IMPORTAÇÕES DO FIREBASE ---
+// --- IMPORTAÇÕES DO FIREBASE (Agora com Autenticação) ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 
-// --- SUAS CONFIGURAÇÕES DO FIREBASE ---
+// --- SUAS CONFIGURAÇÕES ---
 const firebaseConfig = {
     apiKey: "AIzaSyAPU8Lmm8O-8MxB19iavEc8QyeY98jd79Y",
     authDomain: "controle-financeiro-cd9b4.firebaseapp.com",
@@ -12,12 +13,20 @@ const firebaseConfig = {
     appId: "1:779141863552:web:55f473a9534270692b2e65"
 };
 
-// --- INICIALIZANDO O BANCO DE DADOS ---
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 const colecaoTransacoes = collection(db, "transacoes");
 
 // --- ELEMENTOS DO DOM ---
+const telaLogin = document.getElementById('tela-login');
+const appPrincipal = document.getElementById('app-principal');
+const btnLogin = document.getElementById('btn-login');
+const btnLogout = document.getElementById('btn-logout');
+const userFoto = document.getElementById('user-foto');
+const userNome = document.getElementById('user-nome');
+
 const form = document.getElementById('form');
 const inputTexto = document.getElementById('texto');
 const inputCategoria = document.getElementById('categoria');
@@ -28,7 +37,6 @@ const listaTransacoes = document.getElementById('lista-transacoes');
 const displaySaldo = document.getElementById('saldo');
 const displayReceitas = document.getElementById('total-receitas');
 const displayDespesas = document.getElementById('total-despesas');
-
 const filtroMes = document.getElementById('filtro-mes');
 const btnTema = document.getElementById('btn-tema');
 const btnExportar = document.getElementById('btn-exportar');
@@ -39,7 +47,9 @@ const tituloFormulario = document.getElementById('titulo-formulario');
 // --- ESTADO DA APLICAÇÃO ---
 let transacoes = [];
 let graficoInstancia = null;
-let idEdicao = null; // Agora usamos o ID do Firebase ao invés da posição no array
+let idEdicao = null;
+let usuarioAtual = null; // Guarda quem está logado
+let escutaBanco = null;  // Desliga o banco de dados se a pessoa deslogar
 
 const dataHoje = new Date().toISOString().split('T')[0];
 inputData.value = dataHoje;
@@ -49,6 +59,42 @@ if (localStorage.getItem('darkMode') === 'true') {
     document.body.classList.add('dark-mode');
     btnTema.innerText = '☀️';
 }
+
+// --- SISTEMA DE LOGIN E LOGOUT ---
+// Escuta se alguém logou ou deslogou
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        // Logado!
+        usuarioAtual = user;
+        telaLogin.style.display = 'none';
+        appPrincipal.style.display = 'block';
+        userFoto.src = user.photoURL;
+        userNome.innerText = `Olá, ${user.displayName.split(' ')[0]}`; // Pega só o primeiro nome
+
+        // 🚨 A MÁGICA ACONTECE AQUI: Pede pro Firebase SÓ os dados desse UID
+        const consultaPrivada = query(colecaoTransacoes, where("userId", "==", user.uid));
+        
+        if(escutaBanco) escutaBanco(); // Limpa a escuta anterior
+        escutaBanco = onSnapshot(consultaPrivada, (snapshot) => {
+            transacoes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            atualizarTela();
+        });
+    } else {
+        // Deslogado!
+        usuarioAtual = null;
+        telaLogin.style.display = 'block';
+        appPrincipal.style.display = 'none';
+        if(escutaBanco) escutaBanco(); // Para de puxar dados
+    }
+});
+
+btnLogin.addEventListener('click', () => {
+    signInWithPopup(auth, provider).catch(error => alert("Erro ao fazer login."));
+});
+
+btnLogout.addEventListener('click', () => {
+    signOut(auth).catch(error => alert("Erro ao sair."));
+});
 
 // --- FUNÇÕES UTILITÁRIAS ---
 function formatarMoeda(valor) {
@@ -60,13 +106,7 @@ function formatarData(dataString) {
     return `${p[2]}/${p[1]}/${p[0]}`;
 }
 
-// --- ESCUTANDO A NUVEM (TEMPO REAL) ---
-onSnapshot(colecaoTransacoes, (snapshot) => {
-    transacoes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    atualizarTela();
-});
-
-// --- RENDERIZAÇÃO PRINCIPAL ---
+// --- RENDERIZAÇÃO ---
 function atualizarTela() {
     listaTransacoes.innerHTML = '';
     let saldoTotal = 0, receitasTotal = 0, despesasTotal = 0;
@@ -86,7 +126,6 @@ function atualizarTela() {
         const li = document.createElement('li');
         li.className = `${transacao.valor < 0 ? 'despesa' : 'receita'} ${estaPago ? 'pago' : 'pendente'}`;
         
-        // Note que agora passamos o '${transacao.id}' em formato de texto (string)
         li.innerHTML = `
             <div class="botoes-hover">
                 <button class="btn-editar-hover" title="Editar" onclick="window.prepararEdicao('${transacao.id}')">✏️</button>
@@ -143,34 +182,33 @@ function atualizarGrafico(dadosCategorias) {
     });
 }
 
-// --- CRUD: CRIAR E ATUALIZAR NA NUVEM ---
+// --- CRUD: SALVAR NA NUVEM COM IDENTIDADE ---
 form.addEventListener('submit', async function(e) {
     e.preventDefault();
+    if(!usuarioAtual) return alert("Você precisa estar logado!");
 
     const tipoTransacao = document.querySelector('input[name="tipo"]:checked').value;
     let valorFinal = Math.abs(parseFloat(inputValor.value));
     if (tipoTransacao === 'despesa') valorFinal *= -1;
 
+    // 🚨 ADICIONAMOS O CARIMBO AQUI!
     const dados = {
         texto: inputTexto.value,
         categoria: inputCategoria.value,
         valor: valorFinal,
         data: inputData.value,
-        pago: inputPago.checked
+        pago: inputPago.checked,
+        userId: usuarioAtual.uid 
     };
 
     try {
         if (!idEdicao) {
-            // Cria novo documento no banco
             await addDoc(colecaoTransacoes, dados);
         } else {
-            // Atualiza documento existente
             const docRef = doc(db, "transacoes", idEdicao);
             await updateDoc(docRef, dados);
             cancelarEdicao(); 
         }
-
-        // Limpa campos se for criação
         if(!idEdicao) {
             inputTexto.value = '';
             inputValor.value = '';
@@ -182,11 +220,9 @@ form.addEventListener('submit', async function(e) {
     }
 });
 
-// --- CRUD: MODO EDIÇÃO ---
 window.prepararEdicao = function(id) {
     idEdicao = id;
     const t = transacoes.find(trans => trans.id === id);
-    
     inputTexto.value = t.texto;
     inputCategoria.value = t.categoria || 'Outros';
     inputValor.value = Math.abs(t.valor);
@@ -199,7 +235,6 @@ window.prepararEdicao = function(id) {
     tituloFormulario.innerText = "Editando Transação";
     btnSubmit.innerText = "Salvar Alterações";
     btnCancelar.style.display = 'block';
-    
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -210,7 +245,6 @@ function cancelarEdicao() {
     inputData.value = dataHoje;
     inputPago.checked = true;
     document.getElementById('tipo-receita').checked = true;
-    
     tituloFormulario.innerText = "Nova Transação";
     btnSubmit.innerText = "Adicionar Transação";
     btnCancelar.style.display = 'none';
@@ -218,7 +252,6 @@ function cancelarEdicao() {
 
 btnCancelar.addEventListener('click', cancelarEdicao);
 
-// --- CRUD: DELETAR E ALTERAR STATUS NA NUVEM ---
 window.removerTransacao = async function(id) {
     if(confirm("Tem certeza que deseja apagar?")) {
         try {
@@ -240,7 +273,6 @@ window.alternarStatus = async function(id) {
     }
 }
 
-// --- EVENTOS EXTRAS ---
 filtroMes.addEventListener('change', atualizarTela);
 
 btnTema.addEventListener('click', () => {

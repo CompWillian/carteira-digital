@@ -143,3 +143,29 @@ input:not([type="radio"]):not([type="checkbox"]), select {
 }
 .btn-apagar { background-color: #ff4757; }
 .btn-editar-hover { background-color: #f39c12; }
+/* --- ESTILOS DE LOGIN E USUÁRIO --- */
+.user-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+.user-info { display: flex; align-items: center; gap: 10px; }
+.user-info img { width: 35px; height: 35px; border-radius: 50%; }
+.user-info span { font-weight: 600; font-size: 15px; }
+
+#btn-logout {
+    background: transparent; border: 1px solid var(--input-border); color: var(--text-main);
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
+}
+#btn-logout:hover { background: var(--input-bg); }
+
+.btn-google {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    background-color: #ffffff; color: #3c4043; border: 1px solid #dadce0;
+    padding: 12px 24px; border-radius: 8px; font-size: 16px; font-weight: 500;
+    cursor: pointer; transition: 0.2s; box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
+}
+.btn-google:hover { background-color: #f8f9fa; box-shadow: 0 1px 3px 1px rgba(60,64,67,0.15); }
