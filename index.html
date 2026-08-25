@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle Financeiro</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Barra de Ferramentas Superior -->
+        <div class="toolbar">
+            <button id="btn-tema" title="Alternar Modo Escuro">🌙</button>
+            <input type="month" id="filtro-mes" title="Filtrar por Mês">
+            <button id="btn-exportar" title="Baixar Planilha">📥 Exportar</button>
+        </div>
+
+        <h2>Meu Controle Financeiro</h2>
+        
+        <div class="painel-valores">
+            <div class="caixa receita-caixa">
+                <h3>Receitas (Pagas)</h3>
+                <p id="total-receitas">R$ 0.00</p>
+            </div>
+            <div class="caixa despesa-caixa">
+                <h3>Despesas (Pagas)</h3>
+                <p id="total-despesas">R$ 0.00</p>
+            </div>
+            <div class="caixa saldo-caixa">
+                <h3>Saldo Atual</h3>
+                <p id="saldo">R$ 0.00</p>
+            </div>
+        </div>
+
+        <h3>Resumo por Categoria (Pagos)</h3>
+        <div class="grafico-container">
+            <canvas id="meuGrafico"></canvas>
+        </div>
+
+        <h3 id="titulo-formulario">Nova Transação</h3>
+        <form id="form">
+            <div class="form-group">
+                <label for="texto">Descrição</label>
+                <input type="text" id="texto" placeholder="Ex: Conta de Luz..." required>
+            </div>
+
+            <div class="form-group">
+                <label>Tipo</label>
+                <div class="radio-group">
+                    <input type="radio" id="tipo-receita" name="tipo" value="receita" checked>
+                    <label for="tipo-receita" class="radio-label">Receita</label>
+                    
+                    <input type="radio" id="tipo-despesa" name="tipo" value="despesa">
+                    <label for="tipo-despesa" class="radio-label">Despesa</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="categoria">Categoria</label>
+                <select id="categoria" required>
+                    <option value="Salário">Salário</option>
+                    <option value="Alimentação">Alimentação</option>
+                    <option value="Transporte">Transporte</option>
+                    <option value="Moradia">Moradia</option>
+                    <option value="Lazer">Lazer</option>
+                    <option value="Outros">Outros</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="valor">Valor</label>
+                <input type="number" id="valor" step="0.01" min="0.01" placeholder="Ex: 50.00" required>
+            </div>
+
+            <div class="form-group">
+                <label for="data">Data de Vencimento/Pagamento</label>
+                <input type="date" id="data" required>
+            </div>
+
+            <div class="form-group checkbox-group">
+                <input type="checkbox" id="pago" checked>
+                <label for="pago">Esta transação já foi paga/recebida?</label>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" id="btn-submit">Adicionar Transação</button>
+                <button type="button" id="btn-cancelar" style="display: none;">Cancelar Edição</button>
+            </div>
+        </form>
+
+        <h3>Histórico do Mês</h3>
+        <ul id="lista-transacoes"></ul>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
