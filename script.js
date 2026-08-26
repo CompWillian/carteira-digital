@@ -179,7 +179,8 @@ function atualizarGrafico(dadosCategorias) {
     });
 }
 
-fform.addEventListener('submit', async function(e) {
+// --- MÁGICA 1: O FORMULÁRIO ---
+form.addEventListener('submit', async function(e) {
     e.preventDefault();
     if(!usuarioAtual) return alert("Você precisa estar logado!");
 
@@ -198,18 +199,15 @@ fform.addEventListener('submit', async function(e) {
 
     try {
         if (!idEdicao) {
-            // Tenta criar na agenda ANTES de salvar no Firebase
             let idGoogle = null;
             if (dados.valor < 0 && dados.pago === false) {
                 idGoogle = await agendarLembrete(dados);
             }
             
-            // Se o Google devolveu um ID, guarda ele na nossa transação
             if (idGoogle) {
                 dados.googleEventId = idGoogle;
             }
 
-            // Agora sim, salva no banco com ou sem ID do Google
             await addDoc(colecaoTransacoes, dados);
         } else {
             const docRef = doc(db, "transacoes", idEdicao);
@@ -259,14 +257,13 @@ function cancelarEdicao() {
 
 btnCancelar.addEventListener('click', cancelarEdicao);
 
+// --- MÁGICA 2: A LIXEIRA ---
 window.removerTransacao = async function(id) {
     if(confirm("Tem certeza que deseja apagar?")) {
         try {
-            // Verifica se essa conta tinha um ID do Google atrelado
             const t = transacoes.find(trans => trans.id === id);
             
             if (t && t.googleEventId && googleAccessToken) {
-                // Ordem de execução: Apaga lá na agenda primeiro
                 await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${t.googleEventId}`, {
                     method: 'DELETE',
                     headers: {
@@ -276,7 +273,6 @@ window.removerTransacao = async function(id) {
                 console.log("Apagado também da agenda do Google!");
             }
 
-            // Depois apaga do nosso banco de dados
             await deleteDoc(doc(db, "transacoes", id));
             if (idEdicao === id) cancelarEdicao();
         } catch (error) {
@@ -325,7 +321,7 @@ btnExportar.addEventListener('click', () => {
     document.body.removeChild(link);
 });
 
-// --- INTEGRAÇÃO COM GOOGLE CALENDAR ---
+// --- MÁGICA 3: O ENVIO PARA O GOOGLE ---
 async function agendarLembrete(transacao) {
     if (!googleAccessToken) return null;
 
@@ -358,7 +354,7 @@ async function agendarLembrete(transacao) {
         });
         const data = await response.json();
         console.log("Notificação programada na agenda!");
-        return data.id; // A MÁGICA AQUI: Devolvemos o ID para salvar no Firebase
+        return data.id; 
     } catch (erro) {
         console.error("Erro ao integrar com a agenda", erro);
         return null;
