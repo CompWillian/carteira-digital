@@ -169,3 +169,14 @@ input:not([type="radio"]):not([type="checkbox"]), select {
     cursor: pointer; transition: 0.2s; box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
 }
 .btn-google:hover { background-color: #f8f9fa; box-shadow: 0 1px 3px 1px rgba(60,64,67,0.15); }
+.card.pendentes {
+    background-color: #d35400; /* Laranja escuro para combinar com o tema */
+    color: #ffffff;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 120px;
+}
