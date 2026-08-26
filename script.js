@@ -17,6 +17,8 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
+provider.addScope('https://www.googleapis.com/auth/calendar.events'); // Pedido extra para a agenda
+let googleAccessToken = null; // Chave VIP que vamos capturar
 const colecaoTransacoes = collection(db, "transacoes");
 
 // --- ELEMENTOS DO DOM ---
@@ -88,9 +90,14 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-btnLogin.addEventListener('click', () => {
-    signInWithPopup(auth, provider).catch(error => alert("Erro ao fazer login."));
-});
+bbtnLogin.addEventListener('click', () => {
+    signInWithPopup(auth, provider).then((result) => {
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        googleAccessToken = credential.accessToken; // Guarda a chave para usar depois
+    }).catch(error => {
+        console.error("Erro no login", error);
+        alert("Erro ao fazer login.");
+    });
 
 btnLogout.addEventListener('click', () => {
     signOut(auth).catch(error => alert("Erro ao sair."));
@@ -204,6 +211,13 @@ form.addEventListener('submit', async function(e) {
     try {
         if (!idEdicao) {
             await addDoc(colecaoTransacoes, dados);
+            if (!idEdicao) {
+            await addDoc(colecaoTransacoes, dados);
+            
+            // NOVO: Se for Despesa e NÃO estiver paga, envia para a agenda!
+        if (dados.valor < 0 && dados.pago === false) {
+                await agendarLembrete(dados);
+            }
         } else {
             const docRef = doc(db, "transacoes", idEdicao);
             await updateDoc(docRef, dados);
@@ -302,3 +316,40 @@ btnExportar.addEventListener('click', () => {
     link.click();
     document.body.removeChild(link);
 });
+
+// --- INTEGRAÇÃO COM GOOGLE CALENDAR ---
+async function agendarLembrete(transacao) {
+    if (!googleAccessToken) return; // Se não tiver a chave, cancela
+
+    const dataFim = new Date(transacao.data);
+    dataFim.setDate(dataFim.getDate() + 1);
+    const dataFimFormatada = dataFim.toISOString().split('T')[0];
+
+    const evento = {
+        summary: `Pagar: ${transacao.texto}`,
+        description: `Valor: R$ ${Math.abs(transacao.valor).toFixed(2)}\nCategoria: ${transacao.categoria}`,
+        start: { date: transacao.data },
+        end: { date: dataFimFormatada },
+        reminders: {
+            useDefault: false,
+            overrides: [
+                { method: 'popup', minutes: 1440 }, // Apita 24h antes (D-1)
+                { method: 'popup', minutes: 0 }     // Apita no dia (Dia D)
+            ]
+        }
+    };
+
+    try {
+        await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${googleAccessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(evento)
+        });
+        console.log("Notificação programada na agenda!");
+    } catch (erro) {
+        console.error("Erro ao integrar com a agenda", erro);
+    }
+}
