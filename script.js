@@ -179,7 +179,7 @@ function atualizarGrafico(dadosCategorias) {
     });
 }
 
-form.addEventListener('submit', async function(e) {
+fform.addEventListener('submit', async function(e) {
     e.preventDefault();
     if(!usuarioAtual) return alert("Você precisa estar logado!");
 
@@ -198,11 +198,19 @@ form.addEventListener('submit', async function(e) {
 
     try {
         if (!idEdicao) {
-            await addDoc(colecaoTransacoes, dados);
-            
+            // Tenta criar na agenda ANTES de salvar no Firebase
+            let idGoogle = null;
             if (dados.valor < 0 && dados.pago === false) {
-                await agendarLembrete(dados);
+                idGoogle = await agendarLembrete(dados);
             }
+            
+            // Se o Google devolveu um ID, guarda ele na nossa transação
+            if (idGoogle) {
+                dados.googleEventId = idGoogle;
+            }
+
+            // Agora sim, salva no banco com ou sem ID do Google
+            await addDoc(colecaoTransacoes, dados);
         } else {
             const docRef = doc(db, "transacoes", idEdicao);
             await updateDoc(docRef, dados);
@@ -254,6 +262,21 @@ btnCancelar.addEventListener('click', cancelarEdicao);
 window.removerTransacao = async function(id) {
     if(confirm("Tem certeza que deseja apagar?")) {
         try {
+            // Verifica se essa conta tinha um ID do Google atrelado
+            const t = transacoes.find(trans => trans.id === id);
+            
+            if (t && t.googleEventId && googleAccessToken) {
+                // Ordem de execução: Apaga lá na agenda primeiro
+                await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${t.googleEventId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${googleAccessToken}`
+                    }
+                });
+                console.log("Apagado também da agenda do Google!");
+            }
+
+            // Depois apaga do nosso banco de dados
             await deleteDoc(doc(db, "transacoes", id));
             if (idEdicao === id) cancelarEdicao();
         } catch (error) {
@@ -302,8 +325,9 @@ btnExportar.addEventListener('click', () => {
     document.body.removeChild(link);
 });
 
+// --- INTEGRAÇÃO COM GOOGLE CALENDAR ---
 async function agendarLembrete(transacao) {
-    if (!googleAccessToken) return;
+    if (!googleAccessToken) return null;
 
     const dataFim = new Date(transacao.data);
     dataFim.setDate(dataFim.getDate() + 1);
@@ -324,7 +348,7 @@ async function agendarLembrete(transacao) {
     };
 
     try {
-        await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+        const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${googleAccessToken}`,
@@ -332,8 +356,11 @@ async function agendarLembrete(transacao) {
             },
             body: JSON.stringify(evento)
         });
+        const data = await response.json();
         console.log("Notificação programada na agenda!");
+        return data.id; // A MÁGICA AQUI: Devolvemos o ID para salvar no Firebase
     } catch (erro) {
         console.error("Erro ao integrar com a agenda", erro);
+        return null;
     }
 }
