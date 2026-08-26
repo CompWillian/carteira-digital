@@ -158,6 +158,7 @@ function atualizarTela() {
             if (transacao.valor < 0) {
                 pendentesTotal += Math.abs(transacao.valor);
             }
+            saldoTotal += transacao.valor;
         }
     });
 
