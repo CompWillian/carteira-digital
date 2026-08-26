@@ -36,6 +36,8 @@ const listaTransacoes = document.getElementById('lista-transacoes');
 const displaySaldo = document.getElementById('saldo');
 const displayReceitas = document.getElementById('total-receitas');
 const displayDespesas = document.getElementById('total-despesas');
+// NOVO: Capturando o elemento de Pendentes que você criou no HTML
+const displayPendentes = document.getElementById('total-pendente'); 
 const filtroMes = document.getElementById('filtro-mes');
 const btnTema = document.getElementById('btn-tema');
 const btnExportar = document.getElementById('btn-exportar');
@@ -106,7 +108,8 @@ function formatarData(dataString) {
 
 function atualizarTela() {
     listaTransacoes.innerHTML = '';
-    let saldoTotal = 0, receitasTotal = 0, despesasTotal = 0;
+    // NOVO: Adicionamos a variável pendentesTotal começando em 0
+    let saldoTotal = 0, receitasTotal = 0, despesasTotal = 0, pendentesTotal = 0;
     const dadosCategorias = {};
 
     const transacoesFiltradas = transacoes.filter(t => {
@@ -150,12 +153,19 @@ function atualizarTela() {
 
             if(!dadosCategorias[cat]) dadosCategorias[cat] = 0;
             dadosCategorias[cat] += Math.abs(transacao.valor);
+        } else {
+            // NOVO: A matemática que separa os pendentes!
+            if (transacao.valor < 0) {
+                pendentesTotal += Math.abs(transacao.valor);
+            }
         }
     });
 
     displaySaldo.innerText = formatarMoeda(saldoTotal);
     displayReceitas.innerText = formatarMoeda(receitasTotal);
     displayDespesas.innerText = formatarMoeda(Math.abs(despesasTotal));
+    // NOVO: Atualizando o card na tela (if garante que não dê erro se faltar o HTML)
+    if(displayPendentes) displayPendentes.innerText = formatarMoeda(pendentesTotal); 
 
     atualizarGrafico(dadosCategorias);
 }
@@ -179,7 +189,6 @@ function atualizarGrafico(dadosCategorias) {
     });
 }
 
-// --- MÁGICA 1: O FORMULÁRIO ---
 form.addEventListener('submit', async function(e) {
     e.preventDefault();
     if(!usuarioAtual) return alert("Você precisa estar logado!");
@@ -257,7 +266,6 @@ function cancelarEdicao() {
 
 btnCancelar.addEventListener('click', cancelarEdicao);
 
-// --- MÁGICA 2: A LIXEIRA ---
 window.removerTransacao = async function(id) {
     if(confirm("Tem certeza que deseja apagar?")) {
         try {
@@ -321,7 +329,6 @@ btnExportar.addEventListener('click', () => {
     document.body.removeChild(link);
 });
 
-// --- MÁGICA 3: O ENVIO PARA O GOOGLE ---
 async function agendarLembrete(transacao) {
     if (!googleAccessToken) return null;
 
