@@ -90,7 +90,7 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-bbtnLogin.addEventListener('click', () => {
+btnLogin.addEventListener('click', () => {
     signInWithPopup(auth, provider).then((result) => {
         const credential = GoogleAuthProvider.credentialFromResult(result);
         googleAccessToken = credential.accessToken; // Guarda a chave para usar depois
