@@ -182,7 +182,7 @@ function atualizarGrafico(dadosCategorias) {
             labels: Object.keys(dadosCategorias),
             datasets: [{
                 data: Object.values(dadosCategorias),
-                backgroundColor: ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22'],
+                backgroundColor: ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22' , "#34495e"],
                 borderWidth: 0
             }]
         },
