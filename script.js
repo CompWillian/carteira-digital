@@ -160,7 +160,7 @@ function atualizarTela() {
             }
         }
     });
-
+saldoTotal = receitasTotal - pendentesTotal;
     displaySaldo.innerText = formatarMoeda(saldoTotal);
     displayReceitas.innerText = formatarMoeda(receitasTotal);
     displayDespesas.innerText = formatarMoeda(Math.abs(despesasTotal));
