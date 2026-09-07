@@ -149,7 +149,7 @@ function atualizarTela() {
         if (estaPago) {
             if (transacao.valor > 0) receitasTotal += transacao.valor;
             else despesasTotal += transacao.valor;
-            saldoTotal += transacao.valor;
+            
 
             if(!dadosCategorias[cat]) dadosCategorias[cat] = 0;
             dadosCategorias[cat] += Math.abs(transacao.valor);
