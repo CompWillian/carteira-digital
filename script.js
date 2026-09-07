@@ -97,7 +97,7 @@ btnLogout.addEventListener('click', () => {
     signOut(auth).catch(error => alert("Erro ao sair."));
 });
 
-function formatarMoeda(valor) {
+function formatarMoeda(valor) { 
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\s/g, '');
 }
 function formatarData(dataString) {
@@ -162,8 +162,7 @@ function atualizarTela() {
     });
 saldoTotal = receitasTotal - pendentesTotal;
     displaySaldo.innerText = formatarMoeda(saldoTotal);
-    displayReceitas.innerText = formatarMoeda(receitasTotal);
-    displayDespesas.innerText = formatarMoeda(Math.abs(despesasTotal));
+displayReceitas.innerText = formatarMoeda(receitasTotal + despesasTotal);    displayDespesas.innerText = formatarMoeda(Math.abs(despesasTotal));
     // NOVO: Atualizando o card na tela (if garante que não dê erro se faltar o HTML)
     if(displayPendentes) displayPendentes.innerText = formatarMoeda(pendentesTotal); 
 
