@@ -98,7 +98,7 @@ btnLogout.addEventListener('click', () => {
 });
 
 function formatarMoeda(valor) {
-    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).replace(/\s/g, ''); 
+    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\s/g, '');
 }
 function formatarData(dataString) {
     if (!dataString) return '';
