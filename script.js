@@ -160,7 +160,7 @@ function atualizarTela() {
             }
         }
     });
-saldoTotal = receitasTotal - pendentesTotal;
+saldoTotal = receitasTotal + despesasTotal - pendentesTotal;
     displaySaldo.innerText = formatarMoeda(saldoTotal);
 displayReceitas.innerText = formatarMoeda(receitasTotal + despesasTotal);    displayDespesas.innerText = formatarMoeda(Math.abs(despesasTotal));
     // NOVO: Atualizando o card na tela (if garante que não dê erro se faltar o HTML)
